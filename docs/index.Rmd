@@ -1,0 +1,152 @@
+---
+title: "Final Project: COVID-19"
+author: "Adrian Garcia"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(warning = FALSE, message = FALSE) 
+```
+
+# Introduction
+
+Over the course of the COVID-19 pandemic, we have seen many variations of state government mandates issued in an effort to mitigate the spread of the disease as well as different states having varying levels of stringency of such mandates throughout the pandemic. Thus, the goal of this project is to research to what extent state government issued mandates, and how stringent these were varied, affected how fast the disease spread across the state. To do this, we will be using the "United States COVID-19 Cases and Deaths by State over Time" data set from the CDC ("<https://data.cdc.gov/Case-Surveillance/United-States-COVID-19-Cases-and-Deaths-by-State-o/9mfq-cb36>"); in which, contains 15 characteristics and 60,000 samples listed below.
+
+```{r}
+# Packages
+library(data.table)
+# Load Data
+covid_df <- fread("COVID19.csv", data.table = FALSE)
+str(covid_df)
+```
+
+# Findings
+
+In using the aforementioned data set, we will be testing 4 hypotheses. (1) Larger populated states saw more total cases and deaths than smaller states, regardless of mandate strictness. (2/3) Lax COVID-19 restricted states had a greater number of new/total cases per 100,000 than stricter states. (4) The top five largest states accounted for half of the new cases in the US.
+
+To expand further, we will: (1) plot the total number of cases vs total number of deaths per state on a log scale, then fit this data through a linear model, (2/3) plot new/total cases over time (per 100,000) for US states Iowa, South Carolina, Virginia, and Vermont,
+
+(these states were chosen specifically because they were ranked the two most lax and the two most strict states in regards to COVID-19 mandates, respectively. "<https://www.beckershospitalreview.com/rankings-and-ratings/states-ranked-by-covid-19-restrictions.html>")
+
+and (4) perform a one-sample z-test to determine if hypothesis (4) is correct.
+
+Now, first let us consider hypothesis (1). In an effort to clean the data, the data set was read and sorted such that only the last submission date for each US state was considered. As a result, a scatter plot was generated containing 50 data points representing each US state. Additionally, to fit the data through a linear model, `geom_smooth(method = 'lm')` (as well as `lm(log(tot_death) ~ log(tot_cases), covid_df1)`) was used. Consequently, we have the following figure,
+
+```{r}
+# Packages
+library(ggplot2)
+library(dplyr)
+states <- c("AK", "AL", "AR", "AZ", "CA", "CO", "CT", "DE", "FL", "GA",
+           "HI", "IA", "ID", "IL", "IN", "KS", "KY", "LA", "MA", "MD",
+           "ME", "MI", "MN", "MO", "MS", "MT", "NC", "ND", "NE", "NH",
+           "NJ", "NM", "NV", "NY", "OH", "OK", "OR", "PA", "RI", "SC",
+           "SD", "TN", "TX", "UT", "VA", "VT", "WA", "WI", "WV", "WY")
+# Data Cleaning
+covid_df$submission_date <- as.Date(covid_df$submission_date, format = "%m/%d/%Y")
+covid_df <- arrange(covid_df, state, submission_date)
+covid_df1 <- covid_df[!rev(duplicated(rev(covid_df$state))),]
+covid_df1 <- covid_df1[covid_df1$state %in% states,]
+# Plot
+plt1 <- ggplot(data = covid_df1,
+              aes(x = log(tot_cases), y = log(tot_death))) +
+              geom_point(color = "orange", size = 3, shape = 18) +
+              ggtitle(label = "COVID-19 Cases vs. Deaths Per State (Log Scale)", subtitle = "Linear Regression") +
+              xlab("Total Number of Cases") + ylab("Total Number of Deaths") +
+              geom_text(data = covid_df1, aes(label = state), size = 2) +
+              geom_smooth(method = "lm")
+plt1
+```
+
+```{r}
+# SLM Results
+fit <- lm(log(tot_death) ~ log(tot_cases), covid_df1)
+summary(fit)
+```
+
+Notice that the top 5 largest states (California, Texas, New York, Florida, and Pennsylvania) were all leading states in total number of cases and deaths. Thus, we may conclude that hypothesis (1) is correct.
+
+Second, let us consider hypotheses (2/3). We first subdivided each state (Iowa, South Carolina, Vermont, Virginia) into an individual data set, then sorted by submission date. However, to get a better representation of the data, we normalized each state's data set by dividing by its respective population size and multiplying by 100,000; resulting in the following figures.
+
+```{r}
+# Data Subsets
+IA <- covid_df[covid_df$state %in% c("IA"),]
+IA$new_case <- (IA$new_case / 3190369) * 100000
+SC <- covid_df[covid_df$state %in% c("SC"),]
+SC$new_case <- (SC$new_case / 5118425) * 100000
+VT <- covid_df[covid_df$state %in% c("VT"),]
+VT$new_case <- (VT$new_case / 643077) * 100000
+VA <- covid_df[covid_df$state %in% c("VA"),]
+VA$new_case <- (VA$new_case / 8631393) * 100000
+# Plot
+legend_colors <- c("IA" = "blue", "SC" = "red", "VT" = "green", "VA" = "orange")
+plt2 <- ggplot() +
+        geom_line(data = IA, aes(x = submission_date, y = new_case, color = "IA")) +
+        geom_line(data = SC, aes(x = submission_date, y = new_case, color = "SC")) +
+        geom_line(data = VT, aes(x = submission_date, y = new_case, color = "VT")) +
+        geom_line(data = VA, aes(x = submission_date, y = new_case, color = "VA")) +
+        ggtitle(label = "Number of New COVID-19 Cases (Per 100,000)") +
+        xlab("Date") + ylab("Cases") +
+        labs(color = " ") +
+        scale_color_manual(values = legend_colors) + 
+        theme_bw()
+plt2
+```
+
+```{r}
+# Data Subsets
+IA$tot_cases <- (IA$tot_cases / 3190369) * 100000
+SC$tot_cases <- (SC$tot_cases / 5118425) * 100000
+VT$tot_cases <- (VT$tot_cases / 643077) * 100000
+VA$tot_cases <- (VA$tot_cases / 8631393) * 100000
+# Plot
+plt3 <- ggplot() +
+        geom_line(data = IA, aes(x = submission_date, y = tot_cases, color = "IA")) +
+        geom_line(data = SC, aes(x = submission_date, y = tot_cases, color = "SC")) +
+        geom_line(data = VT, aes(x = submission_date, y = tot_cases, color = "VT")) +
+        geom_line(data = VA, aes(x = submission_date, y = tot_cases, color = "VA")) +
+        ggtitle(label = "Number of Total COVID-19 Cases (Per 100,000)") +
+        xlab("Date") + ylab("Cases") +
+        labs(color = " ") +
+        scale_color_manual(values = legend_colors) + 
+        theme_bw()
+plt3
+```
+
+For the first figure above, we see that hypothesis (2) is correct from 2020 till the latter half of 2021; on the other hand, it is interesting to note the significant spike in new cases close to January 2022 causes hypothesis (2) to be incorrect as Vermont, a stricter state, has a much larger spike than the other states. We may then conclude that hypothesis (2) is correct if strict states remain as such. Now, for the second figure above, we see that hypothesis (3) is undoubtedly correct as both Iowa and South Carolina have a greater number of total cases than Vermont and Virginia, even with the aforementioned spike in the previous figure.
+
+Finally, let us consider hypothesis (4). We again subdivided each state (California, Texas, New York, Florida, and Pennsylvania) into an individual data set, then summand all the new cases in each subdivided state into `num_in`, and similarly summand **all** new cases into `total`. We then run a one-sample z-test to determine if hypothesis (4) is correct.
+
+```{r}
+# Data Subsets
+CA <- covid_df[covid_df$state %in% c("CA"),]
+TX <- covid_df[covid_df$state %in% c("TX"),]
+NY <- covid_df[covid_df$state %in% c("NY"),]
+FL <- covid_df[covid_df$state %in% c("FL"),]
+PA <- covid_df[covid_df$state %in% c("PA"),]
+# One-sample z-test
+num_in <- sum(CA$new_case) + sum(TX$new_case) + sum(NY$new_case) +
+          sum(FL$new_case) + sum(PA$new_case)
+total <- sum(covid_df$new_case)
+prop.test(
+  x = num_in,
+  n = total,
+  p = 0.5
+)
+```
+
+Consequently, hypothesis (4) is close to being correct, but not quite as we have a subsequent p-value of 0.3381174. Thus, we may conclude that hypothesis (4) is incorrect.
+
+# Conclusion
+
+To summarize our findings, we found that
+
+hypothesis (1) is correct with the top 5 largest states (California, Texas, New York, Florida, and Pennsylvania) all being leading states in total number of cases and deaths,
+
+hypothesis (2) is correct from 2020 till the latter half of 2021 thus hinting that hypothesis (2) is correct if strict states remain as such,
+
+hypothesis (3) is undoubtedly correct as both Iowa and South Carolina have a greater number of total cases than Vermont and Virginia, even with the aforementioned spike,
+
+and finally hypothesis (4) is close to being correct, but not quite as we have a subsequent p-value of 0.3381174.
+
+As a result, we may unsurprisingly conclude that state government issued mandates, and how stringent these were varied, very much affect how fast the disease spread across the state. However, it is significant to note that cases caused by COVID-19 in a state are not only determined by a state government's response, but independent factors such as past health issues of an individual, age distribution of the population, access to personal protective equipment (PPE), and the population's adherence to such mandates. Therefore, for possible future pandemics, we much act accordingly and implement safety mandates as soon as possible and adhere to them as best we can. If not, we may see spikes like we did in figure 2 once again. Additionally, the purpose of this project was to highlight how effective different levels of stringency was in mitigating the spread of COVID-19; however, independent factors such as the ones aforementioned should be analyzed in future work.
