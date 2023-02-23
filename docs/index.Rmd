@@ -2,7 +2,9 @@
 title: "COVID-19 Data Analysis"
 author: "Adrian Garcia"
 date: "`r Sys.Date()`"
-output: html_document
+output:
+  html_document: default
+  pdf_document: default
 ---
 
 ```{r setup, include=FALSE}
@@ -11,7 +13,7 @@ knitr::opts_chunk$set(warning = FALSE, message = FALSE)
 
 # Introduction
 
-Over the course of the COVID-19 pandemic, we have seen many variations of state government mandates issued in an effort to mitigate the spread of the disease as well as different states having varying levels of stringency of such mandates throughout the pandemic. Thus, the goal of this project is to research to what extent state government issued mandates, and how stringent these were varied, affected how fast the disease spread across the state. To do this, we will be using the "United States COVID-19 Cases and Deaths by State over Time" data set from the CDC ("<https://data.cdc.gov/Case-Surveillance/United-States-COVID-19-Cases-and-Deaths-by-State-o/9mfq-cb36>"); in which, contains 15 characteristics and 60,000 samples listed below.
+Over the course of the COVID-19 pandemic, we have seen many variations of state government mandates issued to mitigate the spread of the disease as well as different states having varying levels of stringency of such mandates throughout the pandemic. Thus, the goal of this project is to research to what extent did these mandates, and how stringent these were varied, affect how fast the disease spread across the US. To do this, we will be using the "United States COVID-19 Cases and Deaths by State over Time" data set from the CDC ("<https://data.cdc.gov/Case-Surveillance/United-States-COVID-19-Cases-and-Deaths-by-State-o/9mfq-cb36>"); in which, contains 15 characteristics and 60,000 samples listed below.
 
 ```{r}
 # Packages
